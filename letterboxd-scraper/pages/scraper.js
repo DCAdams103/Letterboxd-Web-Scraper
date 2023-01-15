@@ -10,7 +10,7 @@ export default function Scraper() {
     async function getMovieData() {
 
         // Use axios to use our movie-data api
-        await axios.get('http://localhost:3000/api/movie-data').then(function(response){
+        await axios.get('https://letterboxd-web-scraper.vercel.app/api/movie-data').then(function(response){
             //const test = JSON.parse(response);
             setTitle(response.data.title);
             setSrc(response.data.src);
@@ -26,7 +26,7 @@ export default function Scraper() {
     return <>
 
         <div>
-            
+
             <p>{state}</p>
             <br />
             <p>{title}</p>
