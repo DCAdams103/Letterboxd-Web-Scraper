@@ -64,7 +64,6 @@ export default function handler(req, res){
     }
 
     async function getMovieDetails(movieNumber) {
-
         var title;
         var src = 'https://a.ltrbxd.com/resized/film-poster/'; // (4/6/5/6/4/9/465649-m3gan-0-230-0-345-crop.jpg)
         var id;
@@ -111,13 +110,29 @@ export default function handler(req, res){
                     src += String(id)[i] + '/'
                 }
 
+                // Problem movies: "A room with a view"
+
+                var linkTitle = title;
+
+                // Letterboxd has a character limit for their titles in their image sources (it's 59 characters)
+                if(title.length > 59) {
+                    linkTitle = title.substring(0, 59);
+                }
+
                 // Check to see if the title has a special character in the end of the movie title
                 // I've noticed Letterboxd adds another dash in the img link if there is
                 if(/[~`!#$%\^&*+=\-\[\]\\';,/{}|\\":<>\?]/g.test(title[title.length-1])) {
-                    src += String(id) + '-' + title.replace(/[^a-z\d\s]+/gi, '').replace(/\s/g, '-').toLowerCase() + '--0-230-0-345-crop.jpg';
+
+                    // RegEx breakdown: First remove any existing dashes (-) and it's leading space, or any colons,
+                    // remove any special characters, replace spaces with dashes,
+                    // Lastly, we make everything lowercase.
+                    src += String(id) + '-' + linkTitle.replace(/[-](\s)|[:]/gi, '').replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s/g, '-').toLowerCase() + '--0-230-0-345-crop.jpg';
+
                 }
                 else {
-                    src += String(id) + '-' + title.replace(/[^a-z\d\s]+/gi, '').replace(/\s/g, '-').toLowerCase() + '-0-230-0-345-crop.jpg';
+
+                    src += String(id) + '-' + linkTitle.replace(/[-][\s]|[:]/gi, '').replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s|[']/g, '-').toLowerCase() + '-0-230-0-345-crop.jpg';
+
                 }
 
             }) 
@@ -125,7 +140,8 @@ export default function handler(req, res){
                 console.log(err);
             }
         );
-
+        
+        // Put our data into a JSON object
         const data = {
             "title": title,
             "src": src
