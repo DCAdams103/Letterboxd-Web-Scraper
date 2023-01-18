@@ -2,17 +2,20 @@ import React, {useState, useEffect} from 'react';
 import axios from 'axios'
 import { Grommet, Heading, Box } from 'grommet';
 import styles from '../styles/Home.module.css'
+import {config} from './constants';
 
 export default function MovieContainer() {
+
+    var url = config.url.API_URL;
 
     const [title, setTitle] = useState('');
     const [src, setSrc] = useState('');
     const [state, setState] = useState('loading');
 
     async function getMovieData() {
-
+        console.log(process.env.NODE_ENV + " " + url);
         // Use axios to get our movie-data api
-        await axios.get('http://localhost:3000/api/movie-data').then(function(response){
+        await axios.get(url).then(function(response){
             setTitle(response.data.title);
             setSrc(response.data.src);
             console.log(response.data.src);
