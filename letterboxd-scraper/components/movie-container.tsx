@@ -13,13 +13,13 @@ export default function MovieContainer() {
     const [state, setState] = useState('loading');
 
     async function getMovieData() {
-        console.log(process.env.NODE_ENV + " " + url);
         // Use axios to get our movie-data api
         await axios.get(url).then(function(response){
+
             setTitle(response.data.title);
             setSrc(response.data.src);
-            console.log(response.data.src);
             setState('');
+            
         }).catch(e => console.log(e));
     }
 
@@ -32,7 +32,7 @@ export default function MovieContainer() {
         <Box className={styles.movie}>
             <Heading> {title} </Heading>
             <br /><br />
-            <img src={src} width="230" height="345" />
+            <img id='poster' src={src} width="230" height="345" />
         </Box>
         
     )

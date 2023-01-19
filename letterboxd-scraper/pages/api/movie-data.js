@@ -1,7 +1,8 @@
 import axios from 'axios'
-import { readdirSync } from 'fs';
+import React, {useState, useEffect} from 'react';
 
 const cheerio = require('cheerio');
+const imgSrcInvalid = "The image source url is invalid";
 
 export default function handler(req, res){
 
@@ -19,12 +20,13 @@ export default function handler(req, res){
                 const $ = cheerio.load(response.data);
 
                 // Counts the number of children in the ul with class 'js-list-entries'
-                numOfMovies = $('.js-list-entries').children().length;
-
-            }).catch(e => console.log(e));
+                var chil = $('.js-list-entries').children();
+                numOfMovies = chil.length;
+                
+            }).catch(error => console.log(error));
             
-            // wait for numOfMovies to have a value before returning its value
-            return await numOfMovies;
+        // wait for numOfMovies to have a value before returning its value
+        return await numOfMovies;
 
     }
 
@@ -48,15 +50,15 @@ export default function handler(req, res){
                 // The last page button contains the highest page number
                 maxPage = parseInt($(children[listLength - 1]).find('a').text());
     
-            }).catch(e => console.log(e));
+            }).catch(error => console.log(error));
 
             // Wait on the 'moviesOnLastPage' function (has to be in a try catch block to use await)
             // Then calculate how many total movies there are
             try{
                 const numOfMovies = await moviesOnLastPage(95);
                 totalMovies = (maxPage * 100) - (100 - numOfMovies);
-            } catch(e){
-                console.log(e);
+            } catch(error){
+                console.log(error);
             }
         
         return totalMovies;
@@ -64,10 +66,15 @@ export default function handler(req, res){
     }
 
     async function getMovieDetails(movieNumber) {
+        
         var title;
+
+        // Create a copy of the title so we don't change the original
+        var linkTitle;
+
+        // They don't have the url to the poster in the source code,
+        // so we'll have to build our own image url
         var src = 'https://a.ltrbxd.com/resized/film-poster/'; // (4/6/5/6/4/9/465649-m3gan-0-230-0-345-crop.jpg)
-        var id;
-        var urlBuilder;
 
         // Calculate which page to start on, since we don't want to iterate through 95 pages of movies
         var startPage = Math.floor(movieNumber/100);
@@ -78,7 +85,7 @@ export default function handler(req, res){
         }
 
         // Create the url based on the necessary page number.
-        urlBuilder = 'https://letterboxd.com/tobiasandersen2/list/random-movie-roulette/page/' + startPage + '/';
+        const urlBuilder = 'https://letterboxd.com/tobiasandersen2/list/random-movie-roulette/page/' + startPage + '/';
         
         await axios.get(urlBuilder)
             .then(function(response) {
@@ -96,23 +103,21 @@ export default function handler(req, res){
 
                         // Get the title of the movie by grabbing it from the alt attribute in the image
                         title = $(children[i]).find('img').attr('alt');
-                        id = $(children[i]).find('div').attr('data-film-id');
+
+                        // Get the id found in a div with an attribute "data-film-id". 
+                        var id = $(children[i]).find('div').attr('data-film-id');
 
                     }
                 
                 }
-
-                // Get the id, found in a div that contains the poster. They don't have the url to the poster in the source code,
-                // so we'll have to build our own image url
                 
+                // Create copy of the title to modify
+                linkTitle = title;
 
+                // Letterboxd urls include the movie id with slashes after each number (ex: 1/2/3/4/5/ )
                 for(var i = 0; i < String(id).length; i++){
                     src += String(id)[i] + '/'
                 }
-
-                // Problem movies: "A room with a view"
-
-                var linkTitle = title;
 
                 // Letterboxd has a character limit for their titles in their image sources (it's 59 characters)
                 if(title.length > 59) {
@@ -124,24 +129,45 @@ export default function handler(req, res){
                 if(/[~`!#$%\^&*+=\-\[\]\\';,/{}|\\":<>\?]/g.test(title[title.length-1])) {
 
                     // RegEx breakdown: First remove any existing dashes (-) and it's leading space, or any colons,
-                    // remove any special characters, replace spaces with dashes,
+                    // remove any special characters(except dash), replace spaces with dashes,
                     // Lastly, we make everything lowercase.
-                    src += String(id) + '-' + linkTitle.replace(/[-](\s)|[:]/gi, '').replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s/g, '-').toLowerCase() + '--0-230-0-345-crop.jpg';
+                    linkTitle = linkTitle.replace(/[-](\s)|[:]/gi, '').replace(/[^a-zA-Z0-9-]/g, ' ').replace(/\s/g, '-').toLowerCase();
+                    src += String(id) + '-' + linkTitle + '--0-230-0-345-crop.jpg';
 
                 }
                 else {
 
-                    src += String(id) + '-' + linkTitle.replace(/[-][\s]|[:]/gi, '').replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s|[']/g, '-').toLowerCase() + '-0-230-0-345-crop.jpg';
+                    linkTitle = linkTitle.replace(/[-][\s]|[:]/gi, '').replace(/[^a-zA-Z0-9-]/g, ' ').replace(/\s|[']/g, '-').toLowerCase()
+                    src += String(id) + '-' + linkTitle + '-0-230-0-345-crop.jpg';
 
                 }
 
             }) 
-            .catch(function(err){
-                console.log(err);
+            .catch(function(error){
+                console.log(error);
             }
         );
         
-        // Put our data into a JSON object
+        // Test the image source link to see if it works.
+        await axios.get(src)
+            .then(function(response){
+                
+            })
+            .catch(function(error){
+                
+                // Put together data we'll need
+                const throwData = {
+                    "message": imgSrcInvalid,
+                    "data": linkTitle,
+                    "title": title,
+                }
+
+                // Throw an error, then when it's caught, we'll use the TMDb API to fetch the movie poster  
+                throw throwData;
+
+            });
+
+        //Put our data into a JSON object
         const data = {
             "title": title,
             "src": src
@@ -151,27 +177,109 @@ export default function handler(req, res){
 
     }
 
+    async function scrapeTMDbId(linkTitle) {
+
+        var TMDbId;
+
+        await axios.get("https://letterboxd.com/film/" + linkTitle + '/')
+            .then(function(response){
+
+                // Load cheerio
+                const $ = cheerio.load(response.data);
+
+                // Find link attributes
+                var children = $('.text-link').find('a');
+                
+                // For every child, we check it's number to see if it matches
+                for(var i = 0; i < children.length; i++) {
+
+                    // Get the url that contains the movie id that TMDb uses
+                    if($(children[i]).attr('data-track-action') == "TMDb"){
+                        TMDbId = $(children[i]).attr('href');
+                    }
+
+                }
+
+                // Get the id out of the url by removing all the characters that aren't numbers
+                TMDbId = TMDbId.replace(/[^0-9]/gi, '');
+
+            })
+            .catch(function(error){
+                console.log(error);
+            });
+        
+        // Return the TMDbId
+        return TMDbId;
+
+    }
+
+    async function retrieveMoviePoster(TMDbId){
+
+        var src;
+
+        await axios.get("https://api.themoviedb.org/3/movie/" + TMDbId + "?api_key=d9b284a754e7790dd5b7cca3fa4b8c88&language=en-US")
+            .then(function(response){
+                src = response.data.poster_path;
+                
+            })
+            .catch(function(error){
+                console.log(error);
+            });
+
+        return src;
+    }
+
     return new Promise((resolve, reject) => {
 
         findTotalMovies().then(response => {
-            //res.status(200).json({title: response});
 
             // Random number from 1 to the total number of movies
             let random = Math.floor(Math.random() * response) + 1;
 
             // Call the 'getMovieDetails' function and give it the random movie number
             getMovieDetails(random).then(detailsResponse => {
-                //console.log(detailsResponse);
+                
                 // Set status to 200 (success) and return the title in json data
+                //console.log('deets ' + detailsResponse);
                 res.status(200).json(detailsResponse);
                 resolve();
+
+            }).catch(function(error){
+
+                // If the image url is incorrect
+                if(error.message == imgSrcInvalid){
+
+                    // We need to source the image from TMDb instead, since the letterboxd url didn't work
+                    // First we scrape the letterboxd source code once again to find which movie id it uses for TMDb
+                    scrapeTMDbId(error.data).then(response => {
+                        console.log(" OOOO " + response);
+                        // Retrieve the movie poster with the TMDb movie Id and return the movie title and the new image source link
+                        retrieveMoviePoster(response)
+                            .then(details => {
+                                const data = {
+                                    "title": error.title,
+                                    "src": "https://www.themoviedb.org/t/p/original" + details,
+                                }
+
+                                res.status(200).json(data);
+                                resolve();
+                            })
+                            .catch(function(error){
+                                console.log(error);
+                            });
+                    });
+                    
+                }
+
             })
 
             
         }).catch(e => {
+
             console.log(e);
             res.status(405).end();
             resolve();
+
         });
     })
 
