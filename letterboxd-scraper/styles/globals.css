@@ -2,5 +2,9 @@
 
 body {
   color: rgb(255, 255, 255);
-  background: rgb(1, 97, 76);
+  background: #2C5F2D;
+}
+
+:root {
+  --shadow-color: #97BC62FF;
 }

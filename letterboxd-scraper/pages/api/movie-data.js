@@ -1,5 +1,6 @@
 import axios from 'axios'
 import React, {useState, useEffect} from 'react';
+import { getAverageColor } from 'fast-average-color-node';
 
 const cheerio = require('cheerio');
 const imgSrcInvalid = "The image source url is invalid";
@@ -64,6 +65,14 @@ export default function handler(req, res){
         return totalMovies;
     
     }
+
+    // Get the averge color that's present in the movie poster
+    async function returnAverageColor(src) {
+
+        const color = await getAverageColor(src).catch(e => { console.log(e) });
+        return color.rgb;
+
+    };
 
     async function getMovieDetails(movieNumber) {
         
@@ -142,6 +151,8 @@ export default function handler(req, res){
 
                 }
 
+                
+
             }) 
             .catch(function(error){
                 console.log(error);
@@ -170,7 +181,8 @@ export default function handler(req, res){
         //Put our data into a JSON object
         const data = {
             "title": title,
-            "src": src
+            "src": src,
+            "shadowColor": await returnAverageColor(src),
         }
 
         return data;
@@ -252,13 +264,14 @@ export default function handler(req, res){
                     // We need to source the image from TMDb instead, since the letterboxd url didn't work
                     // First we scrape the letterboxd source code once again to find which movie id it uses for TMDb
                     scrapeTMDbId(error.data).then(response => {
-                        console.log(" OOOO " + response);
+
                         // Retrieve the movie poster with the TMDb movie Id and return the movie title and the new image source link
                         retrieveMoviePoster(response)
                             .then(details => {
                                 const data = {
                                     "title": error.title,
                                     "src": "https://www.themoviedb.org/t/p/original" + details,
+                                    "shadowColor": printAverageColor("https://www.themoviedb.org/t/p/original" + details),
                                 }
 
                                 res.status(200).json(data);

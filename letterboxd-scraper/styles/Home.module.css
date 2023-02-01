@@ -12,4 +12,9 @@
   direction: column;
   display: flex;
   align-items: center;
+  
+}
+
+.poster{
+  filter: drop-shadow(0px 0px 25px var(--shadow-color, #97BC62FF));
 }
