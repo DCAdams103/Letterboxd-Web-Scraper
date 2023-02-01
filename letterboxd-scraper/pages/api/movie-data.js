@@ -271,7 +271,7 @@ export default function handler(req, res){
                                 const data = {
                                     "title": error.title,
                                     "src": "https://www.themoviedb.org/t/p/original" + details,
-                                    "shadowColor": printAverageColor("https://www.themoviedb.org/t/p/original" + details),
+                                    "shadowColor": returnAverageColor("https://www.themoviedb.org/t/p/original" + details),
                                 }
 
                                 res.status(200).json(data);
