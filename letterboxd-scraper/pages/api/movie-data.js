@@ -75,7 +75,7 @@ export default function handler(req, res){
     };
 
     async function getMovieDetails(movieNumber) {
-        
+
         var title;
 
         // Create a copy of the title so we don't change the original
@@ -105,6 +105,8 @@ export default function handler(req, res){
                 // Get the children of the ul with the 'js-list-entries' class
                 var children = $('.js-list-entries').children();
 
+                var rating;
+
                 // For every child, we check it's number to see if it matches
                 for(var i = 0; i < children.length; i++) {
                     
@@ -115,7 +117,7 @@ export default function handler(req, res){
 
                         // Get the id found in a div with an attribute "data-film-id". 
                         var id = $(children[i]).find('div').attr('data-film-id');
-
+                        
                     }
                 
                 }
@@ -137,21 +139,22 @@ export default function handler(req, res){
                 // I've noticed Letterboxd adds another dash in the img link if there is
                 if(/[~`!#$%\^&*+=\-\[\]\\';,/{}|\\":<>\?]/g.test(title[title.length-1])) {
 
+                    // Remove the last character (which is a special character in this instance)
+                    linkTitle = linkTitle.substring(0, linkTitle.length-1);
+
                     // RegEx breakdown: First remove any existing dashes (-) and it's leading space, or any colons,
                     // remove any special characters(except dash), replace spaces with dashes,
                     // Lastly, we make everything lowercase.
-                    linkTitle = linkTitle.replace(/[-](\s)|[:]/gi, '').replace(/[^a-zA-Z0-9-]/g, ' ').replace(/\s/g, '-').toLowerCase();
+                    linkTitle = linkTitle.replace(/[-](\s)|[:]|[,]/gi, '').replace(/[^a-zA-Z0-9-]/g, ' ').replace(/\s/g, '-').toLowerCase();
                     src += String(id) + '-' + linkTitle + '--0-230-0-345-crop.jpg';
 
                 }
                 else {
 
-                    linkTitle = linkTitle.replace(/[-][\s]|[:]/gi, '').replace(/[^a-zA-Z0-9-]/g, ' ').replace(/\s|[']/g, '-').toLowerCase()
+                    linkTitle = linkTitle.replace(/[-][\s]|[:]|[,]/gi, '').replace(/[^a-zA-Z0-9-]/g, ' ').replace(/\s|[']/g, '-').toLowerCase()
                     src += String(id) + '-' + linkTitle + '-0-230-0-345-crop.jpg';
 
                 }
-
-                
 
             }) 
             .catch(function(error){
@@ -183,10 +186,33 @@ export default function handler(req, res){
             "title": title,
             "src": src,
             "shadowColor": await returnAverageColor(src),
+            "rating": await scrapeMovieInfo(linkTitle),
         }
 
         return data;
 
+    }
+
+    async function scrapeMovieInfo(linkTitle){
+
+        var rating;
+
+        await axios.get("https://letterboxd.com/film/" + linkTitle + '/')
+            .then(function(response){
+
+                // Load cheerio
+                const $ = cheerio.load(response.data);
+
+                // Find how many stars this film hass been rated
+                rating = $('meta[name="twitter:data2"]').attr('content').substring(0, 4);
+
+            })
+            .catch(function(error){
+                console.log(error);
+            });
+        
+        // Return the star rating
+        return rating;
     }
 
     async function scrapeTMDbId(linkTitle) {
@@ -201,6 +227,7 @@ export default function handler(req, res){
 
                 // Find link attributes
                 var children = $('.text-link').find('a');
+                console.log("CHIL " + children);
                 
                 // For every child, we check it's number to see if it matches
                 for(var i = 0; i < children.length; i++) {
@@ -217,7 +244,8 @@ export default function handler(req, res){
 
             })
             .catch(function(error){
-                console.log(error);
+                //console.log(error);
+                console.log("MOVIE ERROR: " + linkTitle);
             });
         
         // Return the TMDbId
@@ -235,7 +263,7 @@ export default function handler(req, res){
                 
             })
             .catch(function(error){
-                console.log(error);
+                //console.log(error);
             });
 
         return src;
@@ -278,7 +306,8 @@ export default function handler(req, res){
                                 resolve();
                             })
                             .catch(function(error){
-                                console.log(error);
+                                //console.log(error);
+                                //console.log("ERROR MOVIE: " + error.title);
                             });
                     });
                     
@@ -286,7 +315,6 @@ export default function handler(req, res){
 
             })
 
-            
         }).catch(e => {
 
             console.log(e);

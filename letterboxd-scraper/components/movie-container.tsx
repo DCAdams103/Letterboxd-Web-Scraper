@@ -12,13 +12,14 @@ export default function MovieContainer() {
     const [title, setTitle] = useState('');
     const [src, setSrc] = useState('');
     const [state, setState] = useState('loading');
-    const [color, setColor] = useState('');
+    const [rating, setRating] = useState(0);
 
     async function getMovieData() {
         // Use axios to get our movie-data api
         await axios.get(url).then(function(response){
             setTitle(response.data.title);
             setSrc(response.data.src);
+            setRating(response.data.rating);
             setState('');
             document.documentElement.style.setProperty('--shadow-color', response.data.shadowColor);
 
@@ -46,10 +47,7 @@ export default function MovieContainer() {
             <Heading> {title} </Heading>
             <br /><br />
             <img className={styles.poster} id='poster' src={src} width="230" height="345" />
-
-            <script>
-                
-            </script>
+            {rating}
 
         </Box>
         
