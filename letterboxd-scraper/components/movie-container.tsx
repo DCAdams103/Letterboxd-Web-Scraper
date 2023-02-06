@@ -17,21 +17,35 @@ export default function MovieContainer() {
     const [stars, setStars] = useState('');
     const [half, setHalf] = useState(false);
 
-    async function getMovieData() {
-        // Use axios to get our movie-data api
-        await axios.get(url).then(function(response){
-            setTitle(response.data.title);
-            setSrc(response.data.src);
-            setRating(response.data.rating);
-            setMovieURL(response.data.url);
-            setState('');
-            document.documentElement.style.setProperty('--shadow-color', response.data.shadowColor);
-            
-        }).catch(e => console.log(e));
-    }
+    
 
     function roundRating() {
 
+        
+
+    }
+
+    // Call the getMovieData function 
+    useEffect(() => {
+        async function getMovieData() {
+            // Use axios to get our movie-data api
+            await axios.get(url).then(function(response){
+                setTitle(response.data.title);
+                setSrc(response.data.src);
+                setRating(response.data.rating);
+                setMovieURL(response.data.url);
+                setState('');
+                document.documentElement.style.setProperty('--shadow-color', response.data.shadowColor);
+                
+            }).catch(e => console.log(e));
+        }
+
+        getMovieData().catch(error => console.log("getMovieData error " + error))
+
+    }, [url])
+
+    useEffect(() => { 
+        
         var starText = "";
 
         for(var i = 0; i < rating - (rating % 1); i++) {
@@ -46,21 +60,12 @@ export default function MovieContainer() {
         
         setStars(starText);
 
-    }
-
-    // Call the getMovieData function 
-    useEffect(() => {
-        getMovieData();
-    }, [])
-
-    useEffect(() => { 
-        roundRating();
     }, [rating]);
     
     return (
         <Box className={styles.movie}>
             <Heading className={styles.title}> {title} </Heading>
-            <a className={styles.link} href={movieURL} target="_blank">
+            <a className={styles.link} href={movieURL} target="_blank" rel="noreferrer">
                 <img id='letterboxd' src='lb-icon.png' width='50' height='50' />
                 <h3>View on Letterboxd</h3>
             </a>
