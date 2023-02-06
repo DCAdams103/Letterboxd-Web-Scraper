@@ -13,6 +13,9 @@ export default function MovieContainer() {
     const [src, setSrc] = useState('');
     const [state, setState] = useState('loading');
     const [rating, setRating] = useState(0);
+    const [movieURL, setMovieURL] = useState('');
+    const [stars, setStars] = useState('');
+    const [half, setHalf] = useState(false);
 
     async function getMovieData() {
         // Use axios to get our movie-data api
@@ -20,11 +23,29 @@ export default function MovieContainer() {
             setTitle(response.data.title);
             setSrc(response.data.src);
             setRating(response.data.rating);
+            setMovieURL(response.data.url);
             setState('');
             document.documentElement.style.setProperty('--shadow-color', response.data.shadowColor);
-
             
         }).catch(e => console.log(e));
+    }
+
+    function roundRating() {
+
+        var starText = "";
+
+        for(var i = 0; i < rating - (rating % 1); i++) {
+            starText += "★";
+        }
+
+        if(rating % 1 >= 0.5) {
+            setHalf(true);
+        } else {
+            setHalf(false);
+        }
+        
+        setStars(starText);
+
     }
 
     // Call the getMovieData function 
@@ -32,22 +53,28 @@ export default function MovieContainer() {
         getMovieData();
     }, [])
 
-    //const img = document.getElementById('poster');
-
-    useEffect(() => {
-        const img = new Image(230, 345);
-        img.src = src;
-        // //test(img.src);
-        
-        
-    }, [src]);
+    useEffect(() => { 
+        roundRating();
+    }, [rating]);
     
     return (
         <Box className={styles.movie}>
-            <Heading> {title} </Heading>
-            <br /><br />
-            <img className={styles.poster} id='poster' src={src} width="230" height="345" />
+            <Heading className={styles.title}> {title} </Heading>
+            <a className={styles.link} href={movieURL} target="_blank">
+                <img id='letterboxd' src='lb-icon.png' width='50' height='50' />
+                <h3>View on Letterboxd</h3>
+            </a>
+
+            <div className={styles.rating}>
+                <p className={styles.stars}>{stars}</p>
+                {half && <h3>&frac12;</h3> }
+            </div>
+            
             {rating}
+            <br />
+            <br />
+            <img className={styles.poster} id='poster' src={src} width="230" height="345" />
+            
 
         </Box>
         

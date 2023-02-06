@@ -8,11 +8,36 @@
 }
 
 /* ---------------------- Movie Container ---------------------- */
+
+.title {
+  color: rgb(221, 221, 221);
+}
+
+.stars {
+  color: rgb(0, 192, 48);
+  font-size: 40px;
+  margin: 5%;
+}
+
 .movie {
   direction: column;
   display: flex;
+  flex-basis: auto;
   align-items: center;
-  
+  min-width: 100vw;
+}
+
+.link {
+  display: inline-flex;
+  white-space: nowrap;
+}
+
+.link > h3 {
+  padding-left: 10%;
+}
+
+.link > img {
+  filter: drop-shadow(0px 0px 5px rgba(206, 206, 206, 0.5));
 }
 
 .poster{

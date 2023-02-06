@@ -24,7 +24,7 @@ export default function handler(req, res){
                 var chil = $('.js-list-entries').children();
                 numOfMovies = chil.length;
                 
-            }).catch(error => console.log(error));
+            }).catch(error => console.log("moviesOnLastPage error " + error));
             
         // wait for numOfMovies to have a value before returning its value
         return await numOfMovies;
@@ -59,7 +59,7 @@ export default function handler(req, res){
                 const numOfMovies = await moviesOnLastPage(95);
                 totalMovies = (maxPage * 100) - (100 - numOfMovies);
             } catch(error){
-                console.log(error);
+                console.log("findTotalMovies " + error);
             }
         
         return totalMovies;
@@ -75,11 +75,13 @@ export default function handler(req, res){
     };
 
     async function getMovieDetails(movieNumber) {
-
+        
         var title;
 
         // Create a copy of the title so we don't change the original
         var linkTitle;
+
+        var imgLinkTitle;
 
         // They don't have the url to the poster in the source code,
         // so we'll have to build our own image url
@@ -117,48 +119,46 @@ export default function handler(req, res){
 
                         // Get the id found in a div with an attribute "data-film-id". 
                         var id = $(children[i]).find('div').attr('data-film-id');
+
+                        linkTitle = $(children[i]).find('div').attr("data-film-slug");
                         
                     }
                 
                 }
                 
                 // Create copy of the title to modify
-                linkTitle = title;
+                imgLinkTitle = linkTitle;
 
                 // Letterboxd urls include the movie id with slashes after each number (ex: 1/2/3/4/5/ )
                 for(var i = 0; i < String(id).length; i++){
                     src += String(id)[i] + '/'
                 }
 
-                // Letterboxd has a character limit for their titles in their image sources (it's 59 characters)
-                if(title.length > 59) {
-                    linkTitle = title.substring(0, 59);
-                }
+                // // Letterboxd has a character limit for their titles in their image sources (it's 59 characters)
+                // if(title.length > 59) {
+                //     imgLinkTitle = title.substring(0, 59);
+                // }
 
-                // Check to see if the title has a special character in the end of the movie title
-                // I've noticed Letterboxd adds another dash in the img link if there is
+                // Remove the beginning and end slashes
+                imgLinkTitle = imgLinkTitle.substring(1, imgLinkTitle.length-1);
+                imgLinkTitle = imgLinkTitle.substring(0, imgLinkTitle.length);
+                
+                // // Check to see if the title has a special character in the end of the movie title
+                // // I've noticed Letterboxd adds another dash in the img link if there is
                 if(/[~`!#$%\^&*+=\-\[\]\\';,/{}|\\":<>\?]/g.test(title[title.length-1])) {
 
-                    // Remove the last character (which is a special character in this instance)
-                    linkTitle = linkTitle.substring(0, linkTitle.length-1);
-
-                    // RegEx breakdown: First remove any existing dashes (-) and it's leading space, or any colons,
-                    // remove any special characters(except dash), replace spaces with dashes,
-                    // Lastly, we make everything lowercase.
-                    linkTitle = linkTitle.replace(/[-](\s)|[:]|[,]/gi, '').replace(/[^a-zA-Z0-9-]/g, ' ').replace(/\s/g, '-').toLowerCase();
-                    src += String(id) + '-' + linkTitle + '--0-230-0-345-crop.jpg';
+                    src += String(id) + '-' + imgLinkTitle.replace(/^(?:[^\/]*\/)+/gi, '') + '--0-230-0-345-crop.jpg';
 
                 }
                 else {
 
-                    linkTitle = linkTitle.replace(/[-][\s]|[:]|[,]/gi, '').replace(/[^a-zA-Z0-9-]/g, ' ').replace(/\s|[']/g, '-').toLowerCase()
-                    src += String(id) + '-' + linkTitle + '-0-230-0-345-crop.jpg';
+                    src += String(id) + '-' + imgLinkTitle.replace(/^(?:[^\/]*\/)+/gi, '') + '-0-230-0-345-crop.jpg';
 
                 }
 
             }) 
             .catch(function(error){
-                console.log(error);
+                console.log("getMovieDetails error " + error);
             }
         );
         
@@ -185,6 +185,7 @@ export default function handler(req, res){
         const data = {
             "title": title,
             "src": src,
+            "url": "https://letterboxd.com" + linkTitle,
             "shadowColor": await returnAverageColor(src),
             "rating": await scrapeMovieInfo(linkTitle),
         }
@@ -197,18 +198,18 @@ export default function handler(req, res){
 
         var rating;
 
-        await axios.get("https://letterboxd.com/film/" + linkTitle + '/')
+        await axios.get("https://letterboxd.com" + linkTitle)
             .then(function(response){
 
                 // Load cheerio
                 const $ = cheerio.load(response.data);
 
-                // Find how many stars this film hass been rated
+                // Find how many stars this film has been rated
                 rating = $('meta[name="twitter:data2"]').attr('content').substring(0, 4);
 
             })
             .catch(function(error){
-                console.log(error);
+                console.log("scrapeMovieInfo error" + error);
             });
         
         // Return the star rating
@@ -219,7 +220,7 @@ export default function handler(req, res){
 
         var TMDbId;
 
-        await axios.get("https://letterboxd.com/film/" + linkTitle + '/')
+        await axios.get("https://letterboxd.com" + linkTitle)
             .then(function(response){
 
                 // Load cheerio
@@ -227,7 +228,7 @@ export default function handler(req, res){
 
                 // Find link attributes
                 var children = $('.text-link').find('a');
-                console.log("CHIL " + children);
+                //console.log("CHIL " + children);
                 
                 // For every child, we check it's number to see if it matches
                 for(var i = 0; i < children.length; i++) {
@@ -235,6 +236,7 @@ export default function handler(req, res){
                     // Get the url that contains the movie id that TMDb uses
                     if($(children[i]).attr('data-track-action') == "TMDb"){
                         TMDbId = $(children[i]).attr('href');
+                        
                     }
 
                 }
@@ -244,8 +246,7 @@ export default function handler(req, res){
 
             })
             .catch(function(error){
-                //console.log(error);
-                console.log("MOVIE ERROR: " + linkTitle);
+                console.log("scrapeTMDbId Error " + error);
             });
         
         // Return the TMDbId
@@ -263,7 +264,7 @@ export default function handler(req, res){
                 
             })
             .catch(function(error){
-                //console.log(error);
+                console.log("Error in retrieveMoviePoster " + error);
             });
 
         return src;
@@ -306,8 +307,7 @@ export default function handler(req, res){
                                 resolve();
                             })
                             .catch(function(error){
-                                //console.log(error);
-                                //console.log("ERROR MOVIE: " + error.title);
+                                console.log("getMovieDetails catch" + error);
                             });
                     });
                     
