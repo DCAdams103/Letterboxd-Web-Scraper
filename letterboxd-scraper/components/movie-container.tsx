@@ -16,14 +16,7 @@ export default function MovieContainer() {
     const [movieURL, setMovieURL] = useState('');
     const [stars, setStars] = useState('');
     const [half, setHalf] = useState(false);
-
-    
-
-    function roundRating() {
-
-        
-
-    }
+    const [roundedRating, setRoundedRating] = useState('');
 
     // Call the getMovieData function 
     useEffect(() => {
@@ -44,42 +37,53 @@ export default function MovieContainer() {
 
     }, [url])
 
+
+    // Create stars text and make rounded rating text
     useEffect(() => { 
         
         var starText = "";
+        var rounded = Math.round(rating * 10) / 10;
 
-        for(var i = 0; i < rating - (rating % 1); i++) {
+        for(var i = 0; i < rounded - (rounded % 1); i++) {
             starText += "★";
         }
 
-        if(rating % 1 >= 0.5) {
+        if(rounded % 1 >= 0.5) {
             setHalf(true);
         } else {
             setHalf(false);
         }
-        
+
         setStars(starText);
+        setRoundedRating(rounded.toFixed(1));
 
     }, [rating]);
     
     return (
+        
         <Box className={styles.movie}>
-            <Heading className={styles.title}> {title} </Heading>
-            <a className={styles.link} href={movieURL} target="_blank" rel="noreferrer">
-                <img id='letterboxd' src='lb-icon.png' width='50' height='50' />
-                <h3>View on Letterboxd</h3>
-            </a>
+            {state != 'loading' ? 
+                <>
+                    <Heading className={styles.title}> {title} </Heading>
 
-            <div className={styles.rating}>
-                <p className={styles.stars}>{stars}</p>
-                {half && <h3>&frac12;</h3> }
-            </div>
-            
-            {rating}
-            <br />
-            <br />
-            <img className={styles.poster} id='poster' src={src} width="230" height="345" />
-            
+                    <a className={styles.link} href={movieURL} target="_blank" rel="noreferrer">
+                        <img id='letterboxd' src='lb-icon.png' width='50' height='50' />
+                        <h3>View on Letterboxd</h3>
+                    </a>
+
+                    <Box direction='row' className={styles.rating}>
+                        <h2>{roundedRating}</h2>
+                        <p className={styles.stars}>{stars}</p>
+                        {half && <h3>&frac12;</h3> }
+                    </Box>
+                    
+                    <br />
+                    <br />
+                    <img className={styles.poster} id='poster' src={src} width="230" height="345" />
+                </>
+                :
+                <h1>Loading...</h1>
+            }
 
         </Box>
         

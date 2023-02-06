@@ -1,16 +1,35 @@
 .main {
   display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
-  padding: 6rem;
-  min-height: 100vh;
+  text-align: center;
+  min-height: 80vh;
 }
 
 /* ---------------------- Movie Container ---------------------- */
 
 .title {
   color: rgb(221, 221, 221);
+  margin-top: 0;
+  white-space: nowrap;
+}
+
+.rating {
+  color:rgb(0, 192, 48);
+}
+
+/* Half star fraction */
+.rating > h3 {
+  margin-top: 16%;
+  font-size: 1.75rem;
+}
+
+/* Rating number */
+.rating > h2 {
+  margin-top: 13%;
+  margin-right: 5%;
+  margin-left: -10%;
+  font-size: 2rem;
 }
 
 .stars {
@@ -20,16 +39,16 @@
 }
 
 .movie {
-  direction: column;
   display: flex;
-  flex-basis: auto;
+  flex-direction: column;
+  justify-content: center;
   align-items: center;
-  min-width: 100vw;
 }
 
 .link {
   display: inline-flex;
   white-space: nowrap;
+  margin-left: -10%;
 }
 
 .link > h3 {

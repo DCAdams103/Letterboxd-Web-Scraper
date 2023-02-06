@@ -75,9 +75,9 @@ export default function handler(req, res){
     };
 
     async function getMovieDetails(movieNumber) {
-        
+        //movieNumber = 6483;
         var title;
-
+        var rating;
         // Create a copy of the title so we don't change the original
         var linkTitle;
 
@@ -106,8 +106,6 @@ export default function handler(req, res){
 
                 // Get the children of the ul with the 'js-list-entries' class
                 var children = $('.js-list-entries').children();
-
-                var rating;
 
                 // For every child, we check it's number to see if it matches
                 for(var i = 0; i < children.length; i++) {
@@ -156,11 +154,15 @@ export default function handler(req, res){
 
                 }
 
+                
+
             }) 
             .catch(function(error){
                 console.log("getMovieDetails error " + error);
             }
         );
+
+        rating = await scrapeMovieInfo(linkTitle);
         
         // Test the image source link to see if it works.
         await axios.get(src)
@@ -174,6 +176,8 @@ export default function handler(req, res){
                     "message": imgSrcInvalid,
                     "data": linkTitle,
                     "title": title,
+                    "linkTitle": linkTitle,
+                    "rating": rating,
                 }
 
                 // Throw an error, then when it's caught, we'll use the TMDb API to fetch the movie poster  
@@ -206,6 +210,7 @@ export default function handler(req, res){
 
                 // Find how many stars this film has been rated
                 rating = $('meta[name="twitter:data2"]').attr('content').substring(0, 4);
+                console.log("RATGIIGJG O " + rating);
 
             })
             .catch(function(error){
@@ -267,7 +272,12 @@ export default function handler(req, res){
                 console.log("Error in retrieveMoviePoster " + error);
             });
 
-        return src;
+            const data = {
+                "src": "https://www.themoviedb.org/t/p/original" + src,
+                "shadowColor": await returnAverageColor("https://www.themoviedb.org/t/p/original" + src),
+            }
+            
+        return data;
     }
 
     return new Promise((resolve, reject) => {
@@ -281,12 +291,11 @@ export default function handler(req, res){
             getMovieDetails(random).then(detailsResponse => {
                 
                 // Set status to 200 (success) and return the title in json data
-                //console.log('deets ' + detailsResponse);
                 res.status(200).json(detailsResponse);
                 resolve();
 
             }).catch(function(error){
-
+                console.log(error.message);
                 // If the image url is incorrect
                 if(error.message == imgSrcInvalid){
 
@@ -299,8 +308,10 @@ export default function handler(req, res){
                             .then(details => {
                                 const data = {
                                     "title": error.title,
-                                    "src": "https://www.themoviedb.org/t/p/original" + details,
-                                    "shadowColor": returnAverageColor("https://www.themoviedb.org/t/p/original" + details),
+                                    "rating": error.rating,
+                                    "url": "https://letterboxd.com" + error.linkTitle,
+                                    "src": details.src,
+                                    "shadowColor": details.shadowColor,
                                 }
 
                                 res.status(200).json(data);
