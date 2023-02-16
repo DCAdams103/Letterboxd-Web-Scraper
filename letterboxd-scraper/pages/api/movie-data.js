@@ -1,5 +1,4 @@
 import axios from 'axios'
-import React, {useState, useEffect} from 'react';
 import { getAverageColor } from 'fast-average-color-node';
 
 const cheerio = require('cheerio');
@@ -7,6 +6,7 @@ const imgSrcInvalid = "The image source url is invalid";
 
 export default function handler(req, res){
 
+    // Find the number of movies on the last page, and later use that to calculate the total movies in the list
     async function moviesOnLastPage(page){
 
         // Make the url based off the given page number
@@ -31,6 +31,7 @@ export default function handler(req, res){
 
     }
 
+    // find the total amount of movies in the list
     async function findTotalMovies() {
 
         var totalMovies = 0;
@@ -74,8 +75,9 @@ export default function handler(req, res){
 
     };
 
+    // This function gets the title, id, link title, 
     async function getMovieDetails(movieNumber) {
-        //movieNumber = 6483;
+
         var title;
         var rating;
         // Create a copy of the title so we don't change the original
@@ -132,14 +134,14 @@ export default function handler(req, res){
                     src += String(id)[i] + '/'
                 }
 
-                // // Letterboxd has a character limit for their titles in their image sources (it's 59 characters)
-                // if(title.length > 59) {
-                //     imgLinkTitle = title.substring(0, 59);
-                // }
-
                 // Remove the beginning and end slashes
                 imgLinkTitle = imgLinkTitle.substring(1, imgLinkTitle.length-1);
                 imgLinkTitle = imgLinkTitle.substring(0, imgLinkTitle.length);
+
+                // // Letterboxd has a character limit for their titles in their image sources (it's 59 characters)
+                if(title.length > 59) {
+                    imgLinkTitle = title.substring(0, 59);
+                }
                 
                 // // Check to see if the title has a special character in the end of the movie title
                 // // I've noticed Letterboxd adds another dash in the img link if there is
@@ -154,15 +156,14 @@ export default function handler(req, res){
 
                 }
 
-                
-
             }) 
             .catch(function(error){
                 console.log("getMovieDetails error " + error);
             }
         );
-
-        rating = await scrapeMovieInfo(linkTitle);
+        
+        // Get the rating
+        rating = await scrapeMovieRating(linkTitle);
         
         // Test the image source link to see if it works.
         await axios.get(src)
@@ -180,6 +181,8 @@ export default function handler(req, res){
                     "rating": rating,
                 }
 
+                console.log(linkTitle);
+
                 // Throw an error, then when it's caught, we'll use the TMDb API to fetch the movie poster  
                 throw throwData;
 
@@ -191,14 +194,15 @@ export default function handler(req, res){
             "src": src,
             "url": "https://letterboxd.com" + linkTitle,
             "shadowColor": await returnAverageColor(src),
-            "rating": await scrapeMovieInfo(linkTitle),
+            "rating": await scrapeMovieRating(linkTitle),
         }
 
         return data;
 
     }
 
-    async function scrapeMovieInfo(linkTitle){
+    // Find the rating in the movie page
+    async function scrapeMovieRating(linkTitle){
 
         var rating;
 
@@ -209,18 +213,24 @@ export default function handler(req, res){
                 const $ = cheerio.load(response.data);
 
                 // Find how many stars this film has been rated
-                rating = $('meta[name="twitter:data2"]').attr('content').substring(0, 4);
-                console.log("RATGIIGJG O " + rating);
+                try{
+                    rating = $('meta[name="twitter:data2"]').attr('content').substring(0, 4);
+                } catch {
+                    rating = -1;
+                }
+                
 
             })
             .catch(function(error){
-                console.log("scrapeMovieInfo error" + error);
+                console.log("scrapeMovieRating error" + error);
+                
             });
         
         // Return the star rating
         return rating;
     }
 
+    // Find the TMDbId if the movie poster is not found
     async function scrapeTMDbId(linkTitle) {
 
         var TMDbId;
@@ -259,6 +269,7 @@ export default function handler(req, res){
 
     }
 
+    // Get the movie poster from themoviddb.org
     async function retrieveMoviePoster(TMDbId){
 
         var src;
@@ -266,7 +277,6 @@ export default function handler(req, res){
         await axios.get("https://api.themoviedb.org/3/movie/" + TMDbId + "?api_key=d9b284a754e7790dd5b7cca3fa4b8c88&language=en-US")
             .then(function(response){
                 src = response.data.poster_path;
-                
             })
             .catch(function(error){
                 console.log("Error in retrieveMoviePoster " + error);
@@ -282,6 +292,7 @@ export default function handler(req, res){
 
     return new Promise((resolve, reject) => {
 
+        // Start the chain of calls 
         findTotalMovies().then(response => {
 
             // Random number from 1 to the total number of movies
