@@ -3,6 +3,7 @@ import { getAverageColor } from 'fast-average-color-node';
 
 const cheerio = require('cheerio');
 const imgSrcInvalid = "The image source url is invalid";
+const baseURL = "https://letterboxd.com/film/"
 
 export default function handler(req, res){
 
@@ -24,7 +25,7 @@ export default function handler(req, res){
                 var chil = $('.js-list-entries').children();
                 numOfMovies = chil.length;
                 
-            }).catch(error => console.log("moviesOnLastPage error " + error));
+            }).catch(error => console.log("moviesOnLastPage error " + error + "\n"));
             
         // wait for numOfMovies to have a value before returning its value
         return await numOfMovies;
@@ -52,7 +53,7 @@ export default function handler(req, res){
                 // The last page button contains the highest page number
                 maxPage = parseInt($(children[listLength - 1]).find('a').text());
     
-            }).catch(error => console.log(error));
+            }).catch(error => console.log(error + "\n"));
 
             // Wait on the 'moviesOnLastPage' function (has to be in a try catch block to use await)
             // Then calculate how many total movies there are
@@ -60,7 +61,7 @@ export default function handler(req, res){
                 const numOfMovies = await moviesOnLastPage(95);
                 totalMovies = (maxPage * 100) - (100 - numOfMovies);
             } catch(error){
-                console.log("findTotalMovies " + error);
+                console.log("findTotalMovies " + error + "\n");
             }
         
         return totalMovies;
@@ -70,7 +71,7 @@ export default function handler(req, res){
     // Get the averge color that's present in the movie poster
     async function returnAverageColor(src) {
 
-        const color = await getAverageColor(src).catch(e => { console.log(e) });
+        const color = await getAverageColor(src).catch(e => { console.log(e + "\n") });
         return color.rgb;
 
     };
@@ -158,7 +159,7 @@ export default function handler(req, res){
 
             }) 
             .catch(function(error){
-                console.log("getMovieDetails error " + error);
+                console.log("getMovieDetails error " + error + "\n");
             }
         );
         
@@ -181,7 +182,7 @@ export default function handler(req, res){
                     "rating": rating,
                 }
 
-                console.log(linkTitle);
+                
 
                 // Throw an error, then when it's caught, we'll use the TMDb API to fetch the movie poster  
                 throw throwData;
@@ -192,7 +193,7 @@ export default function handler(req, res){
         const data = {
             "title": title,
             "src": src,
-            "url": "https://letterboxd.com" + linkTitle,
+            "url": baseURL + linkTitle,
             "shadowColor": await returnAverageColor(src),
             "rating": await scrapeMovieRating(linkTitle),
         }
@@ -206,7 +207,7 @@ export default function handler(req, res){
 
         var rating;
 
-        await axios.get("https://letterboxd.com" + linkTitle)
+        await axios.get(baseURL + linkTitle)
             .then(function(response){
 
                 // Load cheerio
@@ -222,7 +223,7 @@ export default function handler(req, res){
 
             })
             .catch(function(error){
-                console.log("scrapeMovieRating error" + error);
+                console.log("scrapeMovieRating error" + error + "\n");
                 
             });
         
@@ -235,7 +236,7 @@ export default function handler(req, res){
 
         var TMDbId;
 
-        await axios.get("https://letterboxd.com" + linkTitle)
+        await axios.get(baseURL + linkTitle)
             .then(function(response){
 
                 // Load cheerio
@@ -243,7 +244,6 @@ export default function handler(req, res){
 
                 // Find link attributes
                 var children = $('.text-link').find('a');
-                //console.log("CHIL " + children);
                 
                 // For every child, we check it's number to see if it matches
                 for(var i = 0; i < children.length; i++) {
@@ -261,7 +261,7 @@ export default function handler(req, res){
 
             })
             .catch(function(error){
-                console.log("scrapeTMDbId Error " + error);
+                console.log("scrapeTMDbId Error " + error + "\n");
             });
         
         // Return the TMDbId
@@ -279,7 +279,7 @@ export default function handler(req, res){
                 src = response.data.poster_path;
             })
             .catch(function(error){
-                console.log("Error in retrieveMoviePoster " + error);
+                console.log("Error in retrieveMoviePoster " + error + "\n");
             });
 
             const data = {
@@ -306,7 +306,7 @@ export default function handler(req, res){
                 resolve();
 
             }).catch(function(error){
-                console.log(error.message);
+                console.log("getMovieDetails catch: " + error.message + "\n");
                 // If the image url is incorrect
                 if(error.message == imgSrcInvalid){
 
@@ -320,7 +320,7 @@ export default function handler(req, res){
                                 const data = {
                                     "title": error.title,
                                     "rating": error.rating,
-                                    "url": "https://letterboxd.com" + error.linkTitle,
+                                    "url": baseURL + error.linkTitle,
                                     "src": details.src,
                                     "shadowColor": details.shadowColor,
                                 }
@@ -329,7 +329,7 @@ export default function handler(req, res){
                                 resolve();
                             })
                             .catch(function(error){
-                                console.log("getMovieDetails catch" + error);
+                                console.log("getMovieDetails catch" + error + "\n");
                             });
                     });
                     
@@ -339,7 +339,7 @@ export default function handler(req, res){
 
         }).catch(e => {
 
-            console.log(e);
+            console.log(e + "\n");
             res.status(405).end();
             resolve();
 
